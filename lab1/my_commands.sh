@@ -2,5 +2,5 @@
 
 ./echo_arg csc209 > echo_out.txt
 ./echo_stdin < echo_stdin.c
-./count 209 | wc -m
+./count 210 | wc -m
 ls -S | ./echo_stdin
