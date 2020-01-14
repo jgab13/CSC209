@@ -13,11 +13,7 @@ int main() {
 	printf("%s", phone);
 	return 0;
     } else if ((n >= 0) & (n <= 9)){
-	char phone2[n+1];
-	for (int i = 0; i < n; i++){
-	    phone2[i] = phone[i];
-	}
-	printf("%s", phone2);
+	printf("%c", phone[n]);
 	return 0;
 	
     } else {
