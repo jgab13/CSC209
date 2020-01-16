@@ -9,7 +9,7 @@ int main() {
     int n;
     int exit = 0;
 
-    while(scanf("%d", &n) != EOF){
+    while(scanf("%d", &n) == 1){
 	if (n == -1){
 	    printf("%s\n", phone);
         } else if ((n >= 0) & (n <= 9)){
