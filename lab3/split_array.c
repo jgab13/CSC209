@@ -19,18 +19,12 @@ int **split_array(const int *s, int length) {
     int k = 0; 
     int p = 0;
     for (int j = 0; j < length; j++){
-    if (j == 0){
+    if (j % 2 == 0){
         arr1[0][k] = s[j];
 	k++;
-    } else if (j == 1){
+    } else if (j % 2 == 1){
         arr1[1][p] = s[j];
 	p++;
-    } else if (j % 2 == 0){
-	arr1[0][k] = s[j];
-	k++;
-    } else if (j % 2 != 0){
-	arr1[1][p] = s[j];
-	p++;    
     }
     }
     return arr1;
