@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     }
     int position = strtol(argv[1], NULL, 10);
     int value;
-    int arr[10] = {0};
+    int arr[BASE] = {0};
 
     FILE *data;
     data = fopen(argv[2], "r");
