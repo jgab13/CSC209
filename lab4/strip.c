@@ -25,6 +25,7 @@ int strip_q_marks(char *string){
     int index = strlen(string) - 1;
     while (index > 0 && string[index] == '?'){
 	string[index] = '\0';
+	count++;
 	index--;
     }
     return count;
