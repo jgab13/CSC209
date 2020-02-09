@@ -188,19 +188,23 @@ void print_ftree(struct TreeNode *root) {
  * 
  */
 void deallocate_ftree (struct TreeNode *node) {
-	struct TreeNode *current = node;    
-	while (current != NULL){
-		if (current->next == NULL){
-			free(current->fname);
-			free(current);
-			current = NULL;
-			current = node;
-		} else {
-			current = current->next;
-		}
-	}
 	if (node != NULL){
-   		free(node->fname);
-  		free(node);
+		if ((node->next == NULL) && (node->contents == NULL)){
+			free(node->fname);
+			free(node);
+		} else if ((node->next != NULL) && (node->contents == NULL)){
+			deallocate_ftree(node->next);
+			free(node->fname);
+			free(node);
+		} else if ((node->contents != NULL) && (node->next == NULL)){
+			deallocate_ftree(node->contents);
+			free(node->fname);
+			free(node);
+		} else if ((node->contents != NULL) && (node->next != NULL)){
+			deallocate_ftree(node->contents);
+			deallocate_ftree(node->next);
+			free(node->fname);
+			free(node);
+		}
 	}
 }
