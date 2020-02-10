@@ -28,7 +28,7 @@ struct TreeNode *construct_node(const char * fname, char * path){
     //construct root node using malloc. store values in the node.
     struct TreeNode * tree;
     tree = malloc(sizeof(struct TreeNode));
-    tree->fname = malloc(sizeof(char)*strlen(fname));
+    tree->fname = malloc(sizeof(char)*(strlen(fname)+1));
     if (tree == NULL){
     	printf("The malloc call did not work.");
 	return NULL;
