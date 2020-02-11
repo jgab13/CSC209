@@ -12,7 +12,14 @@
  */
 
 char *copy(char *dest, const char *src, int capacity) {
-
+	
+	int i = 0;
+	while (i < capacity){
+		dest[i] = src[i];
+		i++;
+	}
+	dest[capacity -1] = '\0';
+	
 
     return dest;
 }
