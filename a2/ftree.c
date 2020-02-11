@@ -138,7 +138,7 @@ struct TreeNode *generate_ftree(const char *fname) {
     // file path from the root to that file.
     
 	struct TreeNode * root = construct_node(fname, "");
-	if (root->type == 'd'){
+	if ((root != NULL) && (root->type == 'd')){
 		root->contents = construct_tree(fname);
     }
 	return root;
