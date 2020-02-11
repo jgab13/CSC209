@@ -1,0 +1,538 @@
+Script started on 2020-02-11 17:35:47-0500
+]0;jongabe@Jonathan: /mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/gabejona/lab6[01;32mjongabe@Jonathan[00m:[01;34m/mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/ggabejona/lab6[00m$ gdb -Wall -g -std=gnu99 -o overflow overflow.c
+gdb: unrecognized option '-Wall'
+Use `gdb --help' for a complete list of options.
+]0;jongabe@Jonathan: /mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/gabejona/lab6[01;32mjongabe@Jonathan[00m:[01;34m/mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/ggabejona/lab6[00m$ gdb -Wall -g -std=gnu99 -o overflow overflow.c[C[1P[1P[1@c[1@c[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+]0;jongabe@Jonathan: /mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/gabejona/lab6[01;32mjongabe@Jonathan[00m:[01;34m/mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/ggabejona/lab6[00m$ gcc -Wall -g -std=gnu99 -o overflow overflow.c[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cdb[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Koverflow
+GNU gdb (Ubuntu 8.1-0ubuntu3.2) 8.1.0.20180409-git
+Copyright (C) 2018 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from overflow...done.
+(gdb) break main
+Breakpoint 1 at 0x742: file overflow.c, line 6.
+(gdb) run
+Starting program: /mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/gabejona/lab6/overflow 
+
+Breakpoint 1, main () at overflow.c:6
+6	int main() {
+(gdb) n
+7	    int index = 0;
+(gdb) display index
+1: index = 15775231
+(gdb) n
+9	    int before[SIZE] = {10, 10, 10, 10};
+1: index = 0
+(gdb) display befl[Kore
+2: before = {1, 0, 134220413, 0}
+(gdb) n
+10	    int a[SIZE] = {0, 0, 0, 0};
+1: index = 0
+2: before = {10, 10, 10, 10}
+(gdb) displaya[K a
+3: a = {-12514912, 32767, 0, 0}
+(gdb) n
+11	    int after[SIZE] = {10, 10, 10, 10};
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+(gdb) display after
+4: after = {134220336, 0, 134219312, 0}
+(gdb) n
+13	    printf("Address of the variables:\n");
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+Address of the variables:
+14	    for (index = 0; index < SIZE; index++) {
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+15	        printf("%lx -> &after[%d]\n", (unsigned long) &after[index], index);
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) print a[K&after[K[K[K[K[K[K[K[K[K[K[K[Kn
+7ffffffee030 -> &after[0]
+14	    for (index = 0; index < SIZE; index++) {
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+15	        printf("%lx -> &after[%d]\n", (unsigned long) &after[index], index);
+1: index = 1
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee034 -> &after[1]
+14	    for (index = 0; index < SIZE; index++) {
+1: index = 1
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+15	        printf("%lx -> &after[%d]\n", (unsigned long) &after[index], index);
+1: index = 2
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee038 -> &after[2]
+14	    for (index = 0; index < SIZE; index++) {
+1: index = 2
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+15	        printf("%lx -> &after[%d]\n", (unsigned long) &after[index], index);
+1: index = 3
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee03c -> &after[3]
+14	    for (index = 0; index < SIZE; index++) {
+1: index = 3
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+17	    for (index = 0; index < SIZE; index++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+18	        printf("%lx -> &a[%d]\n", (unsigned long) &a[index], index);
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) print &()a)[)i)n)d)e)x)])[C
+$1 = (int *) 0x7ffffffee020
+(gdb) print &(a[index])[1P])[1P])[1P])[1P])[1P])0])[C[C
+$2 = (int *) 0x7ffffffee020
+(gdb) print a[4]
+$3 = 10
+(gdb) print [a[K[Ka[3]
+$4 = 0
+(gdb) print a[2]
+$5 = 0
+(gdb) print a[1]
+$6 = 0
+(gdb) print a[0]
+$7 = 0
+(gdb) n
+7ffffffee020 -> &a[0]
+17	    for (index = 0; index < SIZE; index++) {
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+18	        printf("%lx -> &a[%d]\n", (unsigned long) &a[index], index);
+1: index = 1
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee024 -> &a[1]
+17	    for (index = 0; index < SIZE; index++) {
+1: index = 1
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+18	        printf("%lx -> &a[%d]\n", (unsigned long) &a[index], index);
+1: index = 2
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee028 -> &a[2]
+17	    for (index = 0; index < SIZE; index++) {
+1: index = 2
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+18	        printf("%lx -> &a[%d]\n", (unsigned long) &a[index], index);
+1: index = 3
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee02c -> &a[3]
+17	    for (index = 0; index < SIZE; index++) {
+1: index = 3
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+20	    for (index = 0; index < SIZE; index++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+21	        printf("%lx -> &before[%d]\n", (unsigned long) &before[index], index);
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee010 -> &before[0]
+20	    for (index = 0; index < SIZE; index++) {
+1: index = 0
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+21	        printf("%lx -> &before[%d]\n", (unsigned long) &before[index], index);
+1: index = 1
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee014 -> &before[1]
+20	    for (index = 0; index < SIZE; index++) {
+1: index = 1
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+21	        printf("%lx -> &before[%d]\n", (unsigned long) &before[index], index);
+1: index = 2
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee018 -> &before[2]
+20	    for (index = 0; index < SIZE; index++) {
+1: index = 2
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+21	        printf("%lx -> &before[%d]\n", (unsigned long) &before[index], index);
+1: index = 3
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee01c -> &before[3]
+20	    for (index = 0; index < SIZE; index++) {
+1: index = 3
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+23	    printf("%lx -> &i\n", (unsigned long)&i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee00c -> &i
+24	    printf("%lx -> &index\n", (unsigned long)&index);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+7ffffffee008 -> &index
+25	    printf("\n");
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+
+28	    printf("Initial values:\n");
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+Initial values:
+29	    printf("i = %d\n", i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+i = 0
+30	    printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+before = {10, 10, 10, 10}
+31	    printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+a = {0, 0, 0, 0}
+32	    printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+after = {10, 10, 10, 10}
+33	    printf("\n");
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+37	        a[i] = i * 10;
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+38	        printf("i = %d\n", i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+i = 0
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+a = {0, 0, 0, 0}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+37	        a[i] = i * 10;
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 0, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+38	        printf("i = %d\n", i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+i = 1
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+a = {0, 10, 0, 0}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+37	        a[i] = i * 10;
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 0, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+38	        printf("i = %d\n", i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+i = 2
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+a = {0, 10, 20, 0}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+37	        a[i] = i * 10;
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 0}
+4: after = {10, 10, 10, 10}
+(gdb) 
+38	        printf("i = %d\n", i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {10, 10, 10, 10}
+(gdb) 
+i = 3
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {10, 10, 10, 10}
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {10, 10, 10, 10}
+(gdb) 
+a = {0, 10, 20, 30}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {10, 10, 10, 10}
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {10, 10, 10, 10}
+(gdb) 
+37	        a[i] = i * 10;
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {10, 10, 10, 10}
+(gdb) 
+38	        printf("i = %d\n", i);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+i = 4
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+a = {0, 10, 20, 30}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+after = {40, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+44	    return 0;
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+45	}
+1: index = 4
+2: before = {10, 10, 10, 10}
+3: a = {0, 10, 20, 30}
+4: after = {40, 10, 10, 10}
+(gdb) 
+__libc_start_main (main=0x800073a <main>, argc=1, argv=0x7ffffffee138, 
+    init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, 
+    stack_end=0x7ffffffee128) at ../csu/libc-start.c:344
+344	../csu/libc-start.c: No such file or directory.
+(gdb) 
+[Inferior 1 (process 90) exited normally]
+(gdb) quit
+]0;jongabe@Jonathan: /mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/gabejona/lab6[01;32mjongabe@Jonathan[00m:[01;34m/mnt/c/Users/Jonathan/Desktop/UofT/Year 3/CSC209 Systems and C/ggabejona/lab6[00m$ exit
+exit
+
+Script done on 2020-02-11 17:42:49-0500
