@@ -28,11 +28,19 @@ struct TreeNode *construct_node(const char * fname, char * path){
     //construct root node using malloc. store values in the node.
     struct TreeNode * tree;
     tree = malloc(sizeof(struct TreeNode));
-    tree->fname = malloc(sizeof(char)*(strlen(fname)+1));
-    if (tree == NULL){
-    	printf("The malloc call did not work.");
-	return NULL;
+
+	if (tree == NULL){
+    	perror("malloc");
+		exit(1);
     }
+
+    tree->fname = malloc(sizeof(char)*(strlen(fname)+1));
+
+	if (tree->fname == NULL){
+    	perror("malloc");
+		exit(1);
+    }
+    
     
     //copy name and permissions into tree
     strcpy(tree->fname, fname);
@@ -59,8 +67,8 @@ struct TreeNode *construct_tree(const char * path){
     DIR *d_ptr = opendir(path);
     //error checking to see if file opened correctly.
     if (d_ptr == NULL) {
-        perror("Direent did not open correctly. ");
-        return NULL;
+        perror("opendir");
+        exit(1);
     }
     
 	struct TreeNode *root = NULL;
@@ -109,8 +117,8 @@ struct TreeNode *construct_tree(const char * path){
 	}
     
     if (closedir(d_ptr) == -1){
-		perror("Closed d_ptr failed");
-		return root;
+		perror("closedir");	
+		exit(1);
     }
   
     return root;
