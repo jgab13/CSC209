@@ -79,7 +79,7 @@ struct TreeNode *construct_tree(const char * path){
     entry_ptr = readdir(d_ptr);
 
 	while (entry_ptr != NULL) {
-		if ((strcmp(entry_ptr->d_name, ".")) && (strcmp(entry_ptr->d_name, ".."))){ //May need this for error check to skip . and ..
+		if (entry_ptr->d_name[0] != '.'){ //May need this for error check to skip . and ..
 				//printf("Name: %s permissions: %o type: %c\n", current->fname, 
 				//current->permissions, current->type);
 			int size = strlen(path) + 2;
