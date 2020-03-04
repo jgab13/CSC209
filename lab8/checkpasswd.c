@@ -30,7 +30,85 @@ int main(void) {
       exit(1);
   }
   
+  
   // TODO
 
+  int fd[2], r, status;
+  
+  if ((pipe(fd) == -1)){
+	  perror("pipe");
+	  exit(1);
+  }
+  
+  if ((r = fork()) > 0){
+	  if (write(fd[1], user_id, MAXLINE) == -1){
+		  perror("write to pipe");
+		  exit(1);
+	  }
+	  
+	  if (write(fd[1], password, MAXLINE) == -1){
+		  perror("write to pipe");
+		  exit(1);
+	  }
+	  
+	  if ((close(fd[1])) == -1) {
+            perror("close");
+        }
+	  
+	  
+	  if (wait(&status) == -1){
+		  perror("wait");
+		  exit(1);
+	  }
+	  
+	  if (WIFEXITED(status)){
+		if (WEXITSTATUS(status) == 0){
+		  printf("%s", SUCCESS);
+		} else if (WEXITSTATUS(status) == 2){
+		  printf("%s", INVALID);
+		} else if (WEXITSTATUS(status) == 3){
+		  printf("%s", NO_USER);
+		}  
+	  }
+	  
+	  if ((close(fd[0])) == -1) {
+            perror("close");
+        }
+	  
+  } 
+  else if (r == 0){// child process
+	  if ((dup2(fd[0], fileno(stdin))) == -1) {
+            perror("dup2");
+            exit(1);
+        }
+	
+	  if ((dup2(fd[1], fileno(stdout))) == -1) {
+            perror("dup2");
+            exit(1);
+        }
+
+        // Child won't be reading from pipe
+        
+		
+	  execl("./validate", "validate", NULL);
+	  fprintf(stderr, "ERROR: exec should not return \n");
+	  if ((close(fd[0])) == -1) {
+            perror("close");
+        }
+	
+	  if ((close(fd[1])) == -1) {
+            perror("close");
+        }
+
+  }
+  
+  else {
+	  perror("fork");
+	  exit(1);
+  }
+ 
+ 
+  
+  
   return 0;
 }
