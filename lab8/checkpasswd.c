@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 
 #define MAXLINE 256
+#define MAXPASSWORD 10
 
 #define SUCCESS "Password verified\n"
 #define INVALID "Invalid password\n"
@@ -41,12 +42,12 @@ int main(void) {
   }
   
   if ((r = fork()) > 0){
-	  if (write(fd[1], user_id, MAXLINE) == -1){
+	  if (write(fd[1], user_id, MAXPASSWORD) == -1){
 		  perror("write to pipe");
 		  exit(1);
 	  }
 	  
-	  if (write(fd[1], password, MAXLINE) == -1){
+	  if (write(fd[1], password, MAXPASSWORD) == -1){
 		  perror("write to pipe");
 		  exit(1);
 	  }
