@@ -29,9 +29,14 @@ double min(double x, double y);
 double strip_closest(struct Point *strip, int size, double d);
 
 /*
+ * Return the total number of points stored in the specified file.
+ */
+int total_points(char *f_name);
+
+/*
  * Return all input points from the specified file and populate *n with the
  * number of points read.
  */
- struct Point *read_points(int *n, char *f_name);
+void read_points(char *f_name, struct Point *points_arr);
 
 #endif /* _UTILITIES_H */

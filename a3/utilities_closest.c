@@ -2,6 +2,9 @@
 #include <float.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "point.h"
 
@@ -90,13 +93,32 @@ double strip_closest(struct Point *strip, int size, double d) {
 }
 
 /*
+ * Return the total number of points stored in the specified file.
+ */
+int total_points(char *f_name) {
+    struct stat st_buf;
+
+    if (stat(f_name, &st_buf) != 0) {
+        perror("stat");
+        exit(1);
+    }
+
+    // Make sure that the file has a valid size.
+    if ((st_buf.st_size - sizeof(int)) % sizeof(struct Point) != 0) {
+        fprintf(stderr, "The size of the specified file is invalid!\n");
+        exit(1);
+    }
+
+    return (st_buf.st_size - sizeof(int)) / sizeof(struct Point);
+}
+
+/*
  * Return all input points from the specified file and populate *n with the
  * number of points read.
  */
-struct Point *read_points(int *n, char *f_name) {
+void read_points(char *f_name, struct Point *points_arr) {
     int total, bytes_read;
     FILE *fp;
-    struct Point *points_arr;
 
     fp = fopen(f_name, "rb");
     if (fp == NULL) {
@@ -110,12 +132,6 @@ struct Point *read_points(int *n, char *f_name) {
         exit(1);
     }
 
-    points_arr = malloc(sizeof(struct Point) * total);
-    if (points_arr == NULL) {
-        perror("malloc");
-        exit(1);
-    }
-
     bytes_read = fread(points_arr, sizeof(struct Point), total, fp);
     if (bytes_read != total) {
         fprintf(stderr, "Error reading %s.\n", f_name);
@@ -126,7 +142,4 @@ struct Point *read_points(int *n, char *f_name) {
         fprintf(stderr, "Error closing %s.\n", f_name);
         exit(1);
     }
-
-    *n = total;
-    return points_arr;
 }
