@@ -107,7 +107,7 @@ double closest_parallel(struct Point *p, int n, int pdmax, int *pcount) {
 				//wait for child to finish
 				wait_wrapper(&status[l]);
 				//update pcount for exit status.
-				printf("The wait value is %d \n", status[l]);
+				//printf("The wait value is %d \n", status[l]);
 				if (WIFEXITED(status[l])) {
 					*pcount = WEXITSTATUS(status[l]); 
 					printf("The pdvalue is %d \n", *pcount);
