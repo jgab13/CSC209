@@ -33,11 +33,20 @@ int main(int argc, char **argv) {
       perror("fopen");
       exit(1);
     }
-
+	
+	int i;
     /* In an infinite loop, read an int from a random location in the file,
      * and print it to stderr.
      */
     for (;;) {
+		i = rand() % 100;
+		fseek(fp, i, SEEK_SET);
+		
+		if (fread(&i, sizeof(int), 1, fp) != 1){
+			perror("fread");
+			exit(1);	
+		}
+		fprintf(stderr, "%d\n", i);
 
 
 
