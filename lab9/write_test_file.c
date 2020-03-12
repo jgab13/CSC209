@@ -20,6 +20,12 @@ int main(int argc, char **argv) {
 
     // TODO: complete this program according its description above.
 
+	for (int i = 0; i < 100; i++){
+		if (fwrite(&i, sizeof(int), 1, fp) != 1){
+			perror("fwrite");
+			exit(1);			
+		}
+	}
 
 
 
