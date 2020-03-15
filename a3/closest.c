@@ -22,13 +22,13 @@ int main(int argc, char **argv) {
     long pdepth = -1;
     char *filename = NULL;
     int pcount = 0;
-
-    // TODO: Parse the command line arguments
 	
+	//Check for 4 command line arguments.
 	if (argc != 5){
 		print_usage();
 	}
 	
+	//Parse command line for -f and -d flags.
     int opt; 
     while ((opt = getopt(argc, argv, "f:d:")) != -1){
 		switch(opt){
@@ -43,9 +43,6 @@ int main(int argc, char **argv) {
 		}
     }
 	
-	//if filename == NULL | pdepth == -1
-	//print_usage()
-
     // Read the points
     n = total_points(filename);
     struct Point points_arr[n];
