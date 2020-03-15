@@ -52,7 +52,8 @@ void pipe_wrapper(int *fd) {
  * Assumes that the array p[] is sorted according to x coordinate.
  */
 double closest_parallel(struct Point *p, int n, int pdmax, int *pcount) {
-	if ((n < 4) || (pdmax == 0)){//base case - if < 4 or pdmax = 0, use single process and return.
+	//base case: use single process closest function.
+	if ((n < 4) || (pdmax == 0)){
 		return closest_serial(p, n);
 	} else {	
 		//create pipe for the children.
@@ -60,7 +61,7 @@ double closest_parallel(struct Point *p, int n, int pdmax, int *pcount) {
 		//two statuses for children.
 		int status[2];
 		
-		//result[0] and result[1] are for child processes - parent stores reads the results into result[3] and result[4].
+		//result[0] and result[1] are for child processes. Parent reads the results into result[3] and result[4].
 		double result[4];
 
 		//iterate for 2 children.
@@ -103,21 +104,19 @@ double closest_parallel(struct Point *p, int n, int pdmax, int *pcount) {
 				//exit with pcount + 1 since the process is a child.			
 				exit(*pcount +1);
 				
-			} else{//parent responding to children.
+			} else{
 				//wait for child to finish
 				wait_wrapper(&status[l]);
 				//update pcount for exit status.
-				//printf("The wait value is %d \n", status[l]);
 				if (WIFEXITED(status[l])) {
 					*pcount = WEXITSTATUS(status[l]); 
-					//printf("The pdvalue is %d \n", *pcount);
 				}
 				//read value into result[3] for child 1.
 				if (read(pipe[l][0], &result[l+2], sizeof(double)) != sizeof(double)) {
 					perror("reading from pipe from a child");
 					exit(1);        
 				}
-				//close pipe after use
+				//close pipe after use.
 				if (close(pipe[l][0]) == -1) {
 					perror("close reading end of pipe in parent");
 					exit(1);
@@ -131,7 +130,6 @@ double closest_parallel(struct Point *p, int n, int pdmax, int *pcount) {
 		double min_child = min(result[2],result[3]);
 		
 		//calculates minimum distance between left and right array.
-		
 		struct Point *strip = malloc(sizeof(struct Point) * n);
 		if (strip == NULL) {
 			perror("malloc");
