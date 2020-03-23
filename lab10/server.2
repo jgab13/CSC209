@@ -1,0 +1,109 @@
+Script started on 2020-03-23 15:52:26-0400
+]0;gabejona@nxsrv:/h/u10/c7/00/gabejona/Desktop/Documents/CSC209/gabejona/lab10nxsrv:~/Desktop/Documents/CSC209/gabejona/lab10$ gdb bufserver
+GNU gdb (Ubuntu 8.1-0ubuntu3.2) 8.1.0.20180409-git
+Copyright (C) 2018 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from bufserver...done.
+(gdb) break main
+Breakpoint 1 at 0xce2: file bufserver.c, line 18.
+(gdb) run
+Starting program: /h/u10/c7/00/gabejona/Desktop/Documents/CSC209/gabejona/lab10/bufserver 
+
+Breakpoint 1, main () at bufserver.c:18
+18	int main() {
+(gdb) n
+21	    setbuf(stdout, NULL);
+(gdb) n
+23	    struct sockaddr_in *self = init_server_addr(PORT);
+(gdb) n
+24	    int listenfd = set_up_server_socket(self, 5);
+(gdb) n
+27	        int fd = accept_connection(listenfd);
+(gdb) n
+Waiting for a new connection...
+New connection accepted from 127.0.0.1:52198
+28	        if (fd < 0) {
+(gdb) n
+33	        char buf[BUFSIZE] = {'\0'};
+(gdb) n
+34	        int inbuf = 0;           // How many bytes currently in buffer?
+(gdb) n
+35	        int room = sizeof(buf);  // How many bytes remaining in buffer?
+(gdb) n
+36	        char *after = buf;       // Pointer to position after the data in buf
+(gdb) n[Kprint room
+$1 = 30
+(gdb) print after
+$2 = 0x1 <error: Cannot access memory at address 0x1>
+(gdb) n
+39	        while ((nbytes = read(fd, after, room)) > 0) {
+(gdb) n
+41				inbuf += nbytes;	
+(gdb) n
+53	            while ((where = find_network_newline(buf, inbuf)) > 0) {
+(gdb) print inbuf
+$3 = 30
+(gdb) n
+59					buf[where -2] = '\0';
+(gdb) n
+62	                printf("Next message: %s\n", buf);
+(gdb) print bug[Kf
+$4 = "A stitch in time\000\nA stitch in "
+(gdb) n
+Next message: A stitch in time
+68					inbuf = inbuf - where;
+(gdb) n
+69					memmove(buf, buf + where, BUFSIZE - where);
+(gdb) n
+53	            while ((where = find_network_newline(buf, inbuf)) > 0) {
+(gdb) print where
+$5 = 18
+(gdb) n
+79				room = BUFSIZE - sizeof(buf);
+(gdb) print[K[K[K[K[Kn
+80				after = buf + inbuf;
+(gdb) print room
+$6 = 0
+(gdb) print after
+$7 = 0x7fffffffe5c0 "A stitch in time"
+(gdb) n
+39	        while ((nbytes = read(fd, after, room)) > 0) {
+(gdb) print after
+$8 = 0x7fffffffe5cc "time"
+(gdb) n
+84	        close(fd);
+(gdb) n
+27	        int fd = accept_connection(listenfd);
+(gdb) n
+Waiting for a new connection...
+n
+n
+exit
+^C
+Program received signal SIGINT, Interrupt.
+0x00007ffff7b067e4 in __libc_accept (fd=3, addr=..., len=0x7fffffffe548)
+    at ../sysdeps/unix/sysv/linux/accept.c:26
+26	../sysdeps/unix/sysv/linux/accept.c: No such file or directory.
+(gdb) exit
+Undefined command: "exit".  Try "help".
+(gdb) quit
+A debugging session is active.
+
+	Inferior 1 [process 51156] will be killed.
+
+Quit anyway? (y or n) y
+]0;gabejona@nxsrv:/h/u10/c7/00/gabejona/Desktop/Documents/CSC209/gabejona/lab10nxsrv:~/Desktop/Documents/CSC209/gabejona/lab10$ exit
+exit
+
+Script done on 2020-03-23 15:55:37-0400
