@@ -76,7 +76,7 @@ int main() {
 
             }
             // Step 5: update after and room, in preparation for the next read.
-			room = sizeof(buf);
+			room = BUFSIZE - sizeof(buf);
 			after = buf + inbuf;
 
 
@@ -97,12 +97,19 @@ int main() {
  * Definitely do not use strchr or other string functions to search here. (Why not?)
  */
 int find_network_newline(const char *buf, int n) {
-	int j = 0;
-	while (j < n -1){
-		if (buf[j] == '\r' && buf[j+1] == '\n'){
-			return j + 2;
+	//int j = 0;
+	//while (j < n -1){
+	//	if (buf[j] == '\r' && buf[j+1] == '\n'){
+	//		return j + 2;
+	//	}
+	//	j++;
+	//}
+	int end = n - 1;
+	while (end > 0){
+		if (buf[end] == '\r' && buf[end + 1] == '\n'){
+			return end + 2;
 		}
-		j++;
+		end -= 1;
 	}
     return -1;
 }
