@@ -65,8 +65,8 @@ int main() {
 
                 // Step 4: update inbuf and remove the full line from the buffer
                 // There might be stuff after the line, so don't just do inbuf = 0.
-				inbuf = inbuf - where;
 				memmove(buf, buf + where, BUFSIZE - where);
+				inbuf = inbuf - where;
 
                 // You want to move the stuff after the full line to the beginning
                 // of the buffer.  A loop can do it, or you can use memmove.
@@ -76,8 +76,9 @@ int main() {
 
             }
             // Step 5: update after and room, in preparation for the next read.
-			room = BUFSIZE - sizeof(buf);
 			after = buf + inbuf;
+			room = BUFSIZE - inbuf;
+
 
 
         }
