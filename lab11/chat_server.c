@@ -44,9 +44,16 @@ int accept_connection(int fd, struct sockname *usernames) {
         close(fd);
         exit(1);
     }
-
+	
+	//to read client username. 
     usernames[user_index].sock_fd = client_fd;
-    usernames[user_index].username = NULL;
+	char * name = malloc(sizeof(char) * BUF_SIZE);
+	int read_name = read(client_fd, name, BUF_SIZE);
+	if (read_name == 0){
+		perror("read name from input");
+		exit(1);
+	}
+    usernames[user_index].username = name;
     return client_fd;
 }
 
@@ -67,10 +74,33 @@ int read_from(int client_index, struct sockname *usernames) {
 
     int num_read = read(fd, &buf, BUF_SIZE);
     buf[num_read] = '\0'; 
-    if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
+    if (num_read == 0){ // || write(fd, buf, strlen(buf)) != strlen(buf)) {
         usernames[client_index].sock_fd = -1;
+		free(usernames[client_index].username);
+		usernames[client_index].username = NULL;
         return fd;
     }
+	
+	//to create message with client username.
+	char full_message[BUF_SIZE];
+	strncpy(full_message, usernames[client_index].username, sizeof(full_message));	
+	strncat(full_message, ": ", sizeof(full_message) - strlen(": ") - 1);
+	strncat(full_message, buf ,sizeof(full_message) - strlen(buf) - 1);
+	
+	//To broadcast message to all clients
+	int i = 0;
+    while (i < MAX_CONNECTIONS) {
+        struct sockname *client = usernames + i;
+        if (client->sock_fd != -1) {
+			int message_len = write(client->sock_fd, full_message, strlen(full_message));
+			if (message_len != strlen(full_message)) {
+				perror("write to all clients");
+				exit(1);
+			}
+        }
+		i++;
+    }
+
 
     return 0;
 }
