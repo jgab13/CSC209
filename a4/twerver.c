@@ -11,7 +11,7 @@
 #include "socket.h"
 
 #ifndef PORT
-    #define PORT x
+    #define PORT 50373
 #endif
 
 #define LISTEN_SIZE 5
@@ -23,6 +23,7 @@
 #define BUF_SIZE 256
 #define MSG_LIMIT 8
 #define FOLLOW_LIMIT 5
+#define INVALID_USER "This username is invalid. Enter your username: "
 
 struct client {
     int fd;
@@ -41,16 +42,47 @@ struct client {
 void add_client(struct client **clients, int fd, struct in_addr addr);
 void remove_client(struct client **clients, int fd);
 
+
+int find_network_newline(const char *buf, int n);//Added by Jonathan.
+int check_username(char *username, struct client **active_clients_ptr);//Added by Jonathan.
+
 // These are some of the function prototypes that we used in our solution 
 // You are not required to write functions that match these prototypes, but
 // you may find them helpful when thinking about operations in your program.
 
 // Send the message in s to all clients in active_clients. 
-void announce(struct client *active_clients, char *s);
+void announce(struct client *active_clients, char *s){//Tested- appears to work - need to test write call when the socket is closed
+	struct client *cur = active_clients; 
+	while (cur != NULL){
+		if (write(cur->fd, s, strlen(s)) == -1){
+			//fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
+            fprintf(stderr, "Write to client %d failed\n", cur->fd);
+			remove_client(&active_clients, cur->fd);
+		}
+		cur = cur->next;
+	}
+	//this should write the same message to every client.
+}
+
+
 
 // Move client c from new_clients list to active_clients list. 
 void activate_client(struct client *c, 
-    struct client **active_clients_ptr, struct client **new_clients_ptr);
+    struct client **active_clients_ptr, struct client **new_clients_ptr){//Tested the second part of the function. 
+		struct client **p;
+
+		for (p = new_clients_ptr; *p && (*p)->fd != c->fd; p = &(*p)->next)
+        ;
+		struct client *t = (*p)->next;
+		*p = t;
+		
+		//No need for the heap with the pointers here!
+		struct client **q;
+		for (q = active_clients_ptr; *q; q = &(*q)->next)
+			;
+		*q = c;
+		
+	}
 
 
 // The set of socket descriptors for select to monitor.
@@ -144,6 +176,7 @@ int main (int argc, char **argv) {
 
     struct sockaddr_in *server = init_server_addr(PORT);
     int listenfd = set_up_server_socket(server, LISTEN_SIZE);
+	free(server);
 
     // Initialize allset and add listenfd to the set of file descriptors
     // passed into select 
@@ -195,12 +228,65 @@ int main (int argc, char **argv) {
         for (cur_fd = 0; cur_fd <= maxfd; cur_fd++) {
             if (FD_ISSET(cur_fd, &rset)) {
                 handled = 0;
-
                 // Check if any new clients are entering their names
                 for (p = new_clients; p != NULL; p = p->next) {
                     if (cur_fd == p->fd) {
                         // TODO: handle input from a new client who has not yet
-                        // entered an acceptable name
+                        // 1) partial read into input buf in p client structure
+						int num_reads = read(p->fd, p->in_ptr, BUF_SIZE);
+						// 2) Check if num_reads didn't work correctly - i.e. cur_fd closed
+						if (num_reads == 0){
+						// 		2 i) if cur_fd closed:
+						//		2 ii) print message that this address disconnected
+							printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
+						//		2 iii) remove cur_fd from new clients
+							remove_client(&new_clients, cur_fd);
+						//		2 iv) print message that this client was removed.
+							printf("Removing client %d %s\n", cur_fd, inet_ntoa(q.sin_addr));
+						} else{//num_reads successfully reads into input buffer.
+						// 3) print message about the number of bytes read by read call.
+							printf("[%d] Read %d bytes\n", cur_fd, num_reads);
+						// 4) check if a newline is present using network newline
+							int where;
+							if ((where = find_network_newline(p->inbuf, strlen(p->inbuf))) > 0){
+								//null terminate p->inbuf.
+								p->inbuf[where - 2] = '\0';
+								// 4 i) Print that a newline was found with the message
+								printf("[%d] Found newline: %s\n", p->fd, p->inbuf);
+								// 5) check if password is valid (i.e. != '' and not in active list - create helper function to check passwords)
+								if (!(check_username(p->inbuf, &active_clients))){
+									//copy username from inbuf
+									strcpy(p->username, p->inbuf);
+									//null terminate username.
+									p->username[strlen(p->inbuf)] = '\0';
+									// 5 ii) if password is valid - remove from new_client, move to active_clients
+									activate_client(p, &active_clients, &new_clients);//PROGRAM DIES HERE!!!!!!!
+									// 5 iii) print that this person just joined.
+									char str[BUF_SIZE * 2];
+									sprintf(str, "%s has just joined\n", p->username);
+									//Write to active clients that a new user just joined.
+									announce(active_clients, str);
+									//print joined twitter to server.
+									printf("%s has just joined\n", p->username);
+								} else { //if username is not valid
+									char * invalid = INVALID_USER;
+									// 6) if not valid, print that this is not valid (print to server log), please enter a proper password (write to file descriptor).
+									if (write(p->fd, invalid, strlen(invalid)) == -1) {
+										fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
+										remove_client(&new_clients, p->fd);
+									}
+									//Print invalid user to the log.
+									printf("[%d] %s\n", p->fd, invalid);
+								}
+								//reset inbuf to empty string.
+								p->inbuf[0] = '\0';
+								//reset pointer.
+								p->in_ptr = p->inbuf;
+							} else {//case where no newline was found
+								//increment the p->in_ptr for the new num_reads
+								p->in_ptr = (p->in_ptr + num_reads);
+							}
+						}
                         handled = 1;
                         break;
                     }
@@ -211,6 +297,30 @@ int main (int argc, char **argv) {
                     for (p = active_clients; p != NULL; p = p->next) {
                         if (cur_fd == p->fd) {
                             // TODO: handle input from an active client
+							// 1) partial read into input buf in p client structure
+							// 2) Check if num_reads didn't work correctly - i.e. cur_fd closed
+							// 		2 i) if cur_fd closed:
+							//		2 ii) print message that this address disconnected
+							//		2 iii) remove cur_fd from active clients
+							//		2 iv) print message that this client was removed.
+							// 3) print message about the number of bytes read by read call.
+							// 4) check if a newline is present using network newline
+							// 4 i) Print that a newline was found with the message
+							// 5) Check if follow and check username to see if valid
+							// 5 i) if FOLLOW_LIMIT violated -> notify user that you cannot add
+							// 5 ii) else add client to followers and add current client to following of username
+							// 6) check if unfollow and check username to see if valid
+							// 6 i) remove from follower and following list
+							// 7) check if show
+							// 7 i) for each user that the current client is following - iterate through each of their messages and write to the current client
+							// 8) check send
+							// 8 i) iterate through message list - if no space - can't send message. 
+							// 8 ii) otherwise add message to message list
+							// 8 iii) write message to followers
+							// 9) check if quit
+							// 9 i) close socket connection and quit 
+							// 10) if not valid, print that this is not valid (print to server log), please enter a proper password (write to file descriptor).
+							// 11) if write command fails - go through each active client and remove from followers and following, then remove from active client.
                             break;
                         }
                     }
@@ -220,3 +330,56 @@ int main (int argc, char **argv) {
     }
     return 0;
 }
+
+/*
+ * Search the first n characters of buf for a network newline (\r\n).
+ * Return one plus the index of the '\n' of the first network newline,
+ * or -1 if no network newline is found.
+ * Definitely do not use strchr or other string functions to search here. (Why not?)
+ */
+int find_network_newline(const char *buf, int n) { //Test in test_functions - seems to work.
+	//int j = 0;
+	//while (j < n -1){
+	//	if (buf[j] == '\r' && buf[j+1] == '\n'){
+	//		return j + 2;
+	//	}
+	//	j++;
+	//}
+	//int j = 0;
+	//while (j < n -1){
+	//	if (buf[j] == '\r' && buf[j+1] == '\n'){
+	//		return j + 2;
+	//	}
+	//	j++;
+	//}
+	int end = n - 1;
+	while (end > -1){
+		if (buf[end] == '\r' && buf[end + 1] == '\n'){
+			return end + 2;
+		}
+		end -= 1;
+	}
+    return -1;
+}
+
+/*
+ * Check username to see if username is an active_user.
+ * Check username to see if username is the empty string.
+ * Return 1 (False) if the above are correct. Return 0 (true) otherwise.
+ */
+int check_username(char *username, struct client **active_clients_ptr){
+	if (!strcmp(username, "")){
+		return 1; //username equals the empty string, return 1 (false)
+	}
+	struct client * active = (*active_clients_ptr);
+	while (active != NULL){
+		if (!strcmp(active->username, username)){//username equals an existing name
+			return 1;//return 1 (false)
+		}
+		active = active->next;
+	}
+	return 0;//returns 0 (true) - your password is legit!
+}	//if this returns 0 - the password is legit - if this returns 1, the password is bullshit!!!!!!!!!!!!!!!
+
+
+//TODO: Need to break into as many small functions as possible to generalize - then test each function
