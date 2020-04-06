@@ -395,7 +395,7 @@ int main (int argc, char **argv) {
 									// 5) Check if follow and check username to see if valid
 									// 5 i) if FOLLOW_LIMIT violated -> notify user that you cannot add
 									// 5 ii) else add client to followers and add current client to following of username
-									else if (!(strncmp(FOLLOW_MSG, p->inbuf, 6)) & (p->nfollowing < FOLLOW_LIMIT)){
+									else if (!(strncmp(FOLLOW_MSG, p->inbuf, 6))){
 										struct client *current;
 										for (current = active_clients; current != NULL; current = current->next){
 											char full_message2[BUF_SIZE];
@@ -404,14 +404,25 @@ int main (int argc, char **argv) {
 											strncat(full_message2, " ", sizeof(full_message2) - strlen(full_message2) - 1);
 											strncat(full_message2, current->username, sizeof(full_message2) - strlen(full_message2) - 1);
 											
-											if (!(strcmp(full_message2, p->inbuf)) & (current->nfollowers < FOLLOW_LIMIT)){
-												p->following[p->nfollowing] = current;//fixed this bug
-												p->nfollowing += 1;
+											if (!(strcmp(full_message2, p->inbuf)) & (current->nfollowers < FOLLOW_LIMIT) & (p->nfollowing < FOLLOW_LIMIT)){
+												for (int b = 0; b < FOLLOW_LIMIT; b++){
+													if (p->following[b] == NULL){
+														p->following[b] = current;
+														p->nfollowing += 1;
+														break;
+													}
+												}
+												
+												for (int c = 0; c < FOLLOW_LIMIT; c++){
+													if	(current->followers[c] == NULL){
+														current->followers[c] = p;
+														current->nfollowers +=1;
+														break;
+													}
+												}
+													
 												add_message(p, full_message2);
 												printf("%s is now followiwng %s\n",p->username,current->username);
-												
-												current->followers[current->nfollowers] = p;//fixed this bug
-												current->nfollowers +=1;
 												printf("%s has %s as a follower\n",current->username,p->username);
 												break;
 											}
