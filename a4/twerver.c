@@ -122,6 +122,25 @@ void add_client(struct client **clients, int fd, struct in_addr addr) {
 }
 
 /* 
+ * Remove followers from clients if the follower_fd is fd.
+ */
+void remove_followers(struct client **clients, int fd){///this doesn
+	struct client **p;
+	
+	// for each client
+    for (p = clients; *p && (*p)->fd != fd; p = &(*p)->next){
+		if (*p && ((*p)->followers[0] != NULL)){//I need another check in order to make quit work.
+			for (int i = 0; i < FOLLOW_LIMIT; i++){
+				if (*p && ((*p)->followers[i]->fd == fd)){
+					(*p)->followers[i] = NULL;
+				}
+			}
+		}
+        
+	}
+}
+
+/* 
  * Remove client from the linked list and close its socket.
  * Also, remove socket descriptor from allset.
  */
@@ -136,6 +155,8 @@ void remove_client(struct client **clients, int fd) {
     if (*p) {
         // TODO: Remove the client from other clients' following/followers
         // lists
+		//remove_followers(clients, fd); 
+		//the remove followers function is fucked - need to double check how it works!
 
         // Remove the client
         struct client *t = (*p)->next;
@@ -148,6 +169,16 @@ void remove_client(struct client **clients, int fd) {
         fprintf(stderr, 
             "Trying to remove fd %d, but I don't know about it\n", fd);
     }
+}
+
+void add_message(struct client * p, char * s){
+	for (int i = 0; i < MSG_LIMIT; i++){
+		if (p->message[i][0] == '\0'){
+			strncpy(p->message[i], s, sizeof(p->message[i]));
+			p->message[i][strlen(s)] = '\0';
+			break;
+		}
+	}
 }
 
 
@@ -326,9 +357,9 @@ int main (int argc, char **argv) {
 									
 									// 9) check if quit
 									// 9 i) close socket connection and quit
-									if (!strcmp("quit", p->inbuf)){
-										printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
+									if (!strcmp("quit", p->inbuf)){//Nothing happens yet - need to figure this out!
 										remove_client(&active_clients, cur_fd);
+										printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
 									}
 									//Construct an unfollow + username message by iterating through each
 									//active user and concatenating with unfollow - then compare against the p->inbuf
@@ -350,6 +381,7 @@ int main (int argc, char **argv) {
 														p->following[m] = NULL;
 														p->nfollowing -= 1;
 														//Print message to server that this guy is no longer following another guy.
+														add_message(p, full_message);
 														printf("%s is no longer following %s\n", p->username, cur->username);
 														break;
 													}
@@ -383,11 +415,12 @@ int main (int argc, char **argv) {
 											full_message2[strlen(follow)] = '\0';
 											strncat(full_message2, current->username, sizeof(full_message2) - strlen(full_message2) - 1);
 											if (!(strcmp(full_message2, p->inbuf)) & (current->nfollowers < FOLLOW_LIMIT)){
-												p->following[p->nfollowing + 1] = current;
+												p->following[p->nfollowing] = current;//fixed this bug
 												p->nfollowing += 1;
+												add_message(p, full_message2);
 												printf("%s is now followiwng %s\n",p->username,current->username);
 												
-												current->followers[current->nfollowers + 1] = p;
+												current->followers[current->nfollowers] = p;//fixed this bug
 												current->nfollowers +=1;
 												printf("%s has %s as a follower\n",current->username,p->username);
 												break;
@@ -480,4 +513,4 @@ int check_username(char *username, struct client **active_clients_ptr){
 }	//if this returns 0 - the password is legit - if this returns 1, the password is bullshit!!!!!!!!!!!!!!!
 
 
-//TODO: Need to break into as many small functions as possible to generalize - then test each function
+
