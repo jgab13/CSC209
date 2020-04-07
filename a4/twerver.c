@@ -30,11 +30,11 @@ struct client {
     struct in_addr ipaddr;
     char username[BUF_SIZE];
     char message[MSG_LIMIT][BUF_SIZE];
-	int nmessage;//added by Jonathan
+	int nmessage;
     struct client *following[FOLLOW_LIMIT]; // Clients this user is following
-	int nfollowing; // added by Jonathan
+	int nfollowing; 
     struct client *followers[FOLLOW_LIMIT]; // Clients who follow this user
-	int nfollowers; //added by Jonathan
+	int nfollowers; 
     char inbuf[BUF_SIZE]; // Used to hold input from the client
     char *in_ptr; // A pointer into inbuf to help with partial reads
     struct client *next;
@@ -144,8 +144,6 @@ void remove_client(struct client **clients, int fd) {
     // Now, p points to (1) top, or (2) a pointer to another client
     // This avoids a special case for removing the head of the list
     if (*p) {
-        // TODO: Remove the client from other clients' following/followers
-        // lists
 		remove_followers(clients, fd, *p); 
 
         // Remove the client
@@ -160,8 +158,6 @@ void remove_client(struct client **clients, int fd) {
             "Trying to remove fd %d, but I don't know about it\n", fd);
     }
 }
-
-
 
 
 int main (int argc, char **argv) {
@@ -248,40 +244,32 @@ int main (int argc, char **argv) {
                 // Check if any new clients are entering their names
                 for (p = new_clients; p != NULL; p = p->next) {
                     if (cur_fd == p->fd) {
-                        // TODO: handle input from a new client who has not yet
                         // Read into input buf for client p.
 						int num_reads = read_wrapper(p->fd, p->in_ptr, BUF_SIZE, q, &new_clients);
 						if (num_reads != 0){
-						// print message about the number of bytes read by read call.
 							printf("[%d] Read %d bytes\n", cur_fd, num_reads);
-						// check if a newline is present using network newline
+							// check if a newline is present using network newline
 							int where;
 							if ((where = find_network_newline(p->inbuf, strlen(p->inbuf))) > 0){
 								p->inbuf[where - 2] = '\0';
 								printf("[%d] Found newline: %s\n", p->fd, p->inbuf);
-								// 5) check if password is valid (i.e. != '' and not in active list)
+								// If username is valid, save username, notify active clients that username joined
+								//and move client from new clients to active clients.
 								if (!(check_username(p->inbuf, &active_clients))){
-									//copy username from inbuf
 									strcpy(p->username, p->inbuf);
 									p->username[strlen(p->inbuf)] = '\0';
-									// 5 iii) print that this person just joined.
 									char str[BUF_SIZE * 2];
 									sprintf(str, "%s has just joined\n", p->username);
-									//Write to active clients that a new user just joined.
-									announce(active_clients, str);
-									//print joined twitter to server
 									printf("%s has just joined\n", p->username);
-									// Remove from new_client, move to active_clients
 									activate_client(p, &active_clients, &new_clients);
-								} else { //if username is not valid
+									announce(active_clients, str);
+								} else { //if username is not valid, tell the client that the name is not valid and write to server log.
 									char * invalid = INVALID_USER;
-									// Tell client that username is not valid and write to server log.
 									write_wrapper(p->fd, invalid, &new_clients, q);
 									printf("[%d] %s\n", p->fd, invalid);
 								}
 								reset_inputbuf(p);
-							} else {//case where no newline was found
-								//increment the p->in_ptr for the new num_reads
+							} else {//if no newline found, increment pointer by num_reads
 								p->in_ptr = (p->in_ptr + num_reads);
 							}
 						}
@@ -294,7 +282,9 @@ int main (int argc, char **argv) {
                     // Check if this socket descriptor is an active client
                     for (p = active_clients; p != NULL; p = p->next) {
                         if (cur_fd == p->fd) {
-                            // TODO: handle input from an active client
+							//Create message for user exiting of nread == 0
+							char user_exit[BUF_SIZE * 2];
+							sprintf(user_exit, "%s hast just left\n", p->username);
 							int nread = read_wrapper(p->fd, p->in_ptr, BUF_SIZE, q, &active_clients);
 							if (nread != 0){
 								printf("[%d] Read %d bytes\n", cur_fd, nread);
@@ -302,7 +292,7 @@ int main (int argc, char **argv) {
 								if ((location = find_network_newline(p->inbuf, strlen(p->inbuf))) > 0){
 									p->inbuf[location - 2] = '\0';
 									printf("[%d] Found newline: %s\n", p->fd, p->inbuf);
-									//If user issues quit command.
+									//Case 1) User issues quit command.
 									if (!strcmp("quit", p->inbuf)){
 										//Save username before removing client.
 										char quit_user[BUF_SIZE];
@@ -316,10 +306,12 @@ int main (int argc, char **argv) {
 										announce(active_clients, quit);
 										//reset buffer
 										reset_inputbuf(p);
-									//If user issues unfollow command.
+										
+									//Case 2) User issues unfollow command.
 									} else if (!(strncmp(UNFOLLOW_MSG, p->inbuf, 6))){
 										struct client *cur;
 										int exists;
+										//Check if an user is attempting to unfollow an active user, who the current user followers
 										for (cur = active_clients; cur != NULL; cur = cur->next){
 											char full_message[BUF_SIZE];
 											strncpy(full_message, UNFOLLOW_MSG, sizeof(full_message));
@@ -334,8 +326,6 @@ int main (int argc, char **argv) {
 														if (!strcmp(p->following[m]->username, cur->username)){
 															p->following[m] = NULL;
 															p->nfollowing -= 1;
-															//Print message to server that this guy is no longer following another guy.
-															//add_message(p, full_message);
 															printf("%s: %s\n", p->username, full_message);
 															printf("%s is no longer following %s\n", p->username, cur->username);
 															break;
@@ -357,7 +347,7 @@ int main (int argc, char **argv) {
 												}
 												break;
 											}
-										}
+										}//exists = 0, the client does not follow the user or the user does not exist. 
 										if (exists == 0){
 											char *invalid_unfollow = "User not found. Unfollow request failed.\n";
 											write_wrapper(p->fd, invalid_unfollow, &active_clients, q);
@@ -365,22 +355,23 @@ int main (int argc, char **argv) {
 										exists = 0;
 										reset_inputbuf(p);
 									}
-									// 5) Check if follow and check username to see if valid
-									// 5 i) if FOLLOW_LIMIT violated -> notify user that you cannot add
-									// 5 ii) else add client to followers and add current client to following of username
+									// Case 3) User issues follow command.
 									else if (!(strncmp(FOLLOW_MSG, p->inbuf, 6))){
 										struct client *current;
 										int exist = 0;
+										//Check if an user is attempting to follow an active user, who the current user does not follow
+										//and the user and active user are not at their FOLLOW_LIMIT.
 										for (current = active_clients; current != NULL; current = current->next){
 											char full_message2[BUF_SIZE];
 											strncpy(full_message2, FOLLOW_MSG, sizeof(full_message2));//add a space here
 											full_message2[strlen(FOLLOW_MSG)] = '\0';
 											strncat(full_message2, " ", sizeof(full_message2) - strlen(full_message2) - 1);
 											strncat(full_message2, current->username, sizeof(full_message2) - strlen(full_message2) - 1);
-											
+											//Checks for validity of follow request
 											if (!(strcmp(full_message2, p->inbuf)) & (current->nfollowers < FOLLOW_LIMIT) & 
 													(p->nfollowing < FOLLOW_LIMIT) & ((check_follow(p, current)))){
 												exist++;
+												//add current to p->username following
 												for (int b = 0; b < FOLLOW_LIMIT; b++){
 													if (p->following[b] == NULL){
 														p->following[b] = current;
@@ -389,6 +380,7 @@ int main (int argc, char **argv) {
 													}
 												}
 												
+												//add p to current->username followers
 												for (int c = 0; c < FOLLOW_LIMIT; c++){
 													if (current->followers[c] == NULL){
 														current->followers[c] = p;
@@ -402,17 +394,16 @@ int main (int argc, char **argv) {
 												break;
 											}
 										}
-										if (exist == 0){
+										if (exist == 0){//exist = 0 indicates that one of the follow conditions was violated.
 											char *invalid_follow = "Follow request failed due to invalid username or limited follow space.\n";
 											write_wrapper(p->fd, invalid_follow, &active_clients, q);
-										
 										}
 										exist = 0;
 										reset_inputbuf(p);
 									} 
-									// 7) check if show
-									// 7 i) for each user that the current client is following - iterate through each of their messages and write to the current client
+									// Case 4) User issues show command.
 									else if (!strcmp(p->inbuf, SHOW_MSG)){
+										//iterate through each message list for each user that p follows and write them to p.
 										for (int i = 0; i < FOLLOW_LIMIT; i++){
 											for (int j = 0; j < MSG_LIMIT; j++){
 												char msg[BUF_SIZE];
@@ -431,15 +422,12 @@ int main (int argc, char **argv) {
 										printf("%s: %s\n", p->username, p->inbuf);
 										reset_inputbuf(p);
 									}
-									// 8) check send
+									// Case 5) User issues send command.
 									else if (!(strncmp(SEND_MSG, p->inbuf, 4))){
 										char tweet[BUF_SIZE];
 										strncpy(tweet, p->inbuf + 4, strlen(p->inbuf) - 4);
 										tweet[strlen(p->inbuf) - 4] = '\0';	
-										// 8 i) iterate through message list - if no space - can't send message. 
-										// 8 ii) otherwise add message to message list
-										// 8 iii) write message to followers
-										
+										//Check that p has not exceeded the message limit and send the message to each of p's followers.
 										if (p->nmessage < MSG_LIMIT){
 											for (int t=0; t < MSG_LIMIT; t++){
 												if (p->message[t][0] == '\0'){
@@ -460,23 +448,27 @@ int main (int argc, char **argv) {
 													break;
 												} 
 											}
-										} else{
+										} else{//Case where message limit exceeded, send message to the user explaining it.
 											char *fail = "Message limit execeed. Message not sent.\n";
 											write_wrapper(p->fd, fail, &active_clients, q);
 										}
 										reset_inputbuf(p);
 										
-									} else{
+									} else{//Final case - if any of the above commands are not issued, then send p an invalid command.
 										char *invalid = "Invalid command. Please enter a valid command.\n";
-										write_wrapper(p->fd, invalid, &active_clients, q);	
+										write_wrapper(p->fd, invalid, &active_clients, q);
+										printf("%s: %s\n", p->username, p->inbuf);	
+										printf("Invalid command\n");
 										reset_inputbuf(p);
 									}
-								} else {
-									//increment the p->in_ptr for the new num_reads
+								} else {//catches partial reads and increments the pointer.
 									p->in_ptr = (p->in_ptr + nread);
 								}
+								break;
+							} else{
+								announce(active_clients, user_exit);
+								break;
 							}
-							break;
                         }
                     }
                 }
