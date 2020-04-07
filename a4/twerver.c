@@ -173,7 +173,10 @@ void remove_client(struct client **clients, int fd) {
             "Trying to remove fd %d, but I don't know about it\n", fd);
     }
 }
-
+/* 
+ * Add message s to client p message list if there is available space.
+ * If the message list is full, write that message not added to the list.
+ */
 void add_message(struct client * p, char * s){
 	for (int i = 0; i < MSG_LIMIT; i++){
 		if (p->message[i][0] == '\0'){
@@ -348,9 +351,16 @@ int main (int argc, char **argv) {
 									// 9) check if quit
 									// 9 i) close socket connection and quit
 									if (!strcmp("quit", p->inbuf)){//Nothing happens yet - need to figure this out!
+										char * quit_user = p->username;
 										printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
 										remove_client(&active_clients, cur_fd);
-										
+										char quit[BUF_SIZE];
+										sprintf(quit, "%s has just left quit\n", quit_user);
+										announce(active_clients, quit);
+										//reset inbuf to empty string.
+										p->inbuf[0] = '\0';
+										//reset pointer.
+										p->in_ptr = p->inbuf;
 									}
 									//Construct an unfollow + username message by iterating through each
 									//active user and concatenating with unfollow - then compare against the p->inbuf
@@ -397,6 +407,10 @@ int main (int argc, char **argv) {
 												break;
 											}
 										}
+										//reset inbuf to empty string.
+										p->inbuf[0] = '\0';
+										//reset pointer.
+										p->in_ptr = p->inbuf;
 									}
 									// 5) Check if follow and check username to see if valid
 									// 5 i) if FOLLOW_LIMIT violated -> notify user that you cannot add
@@ -433,7 +447,11 @@ int main (int argc, char **argv) {
 												printf("%s has %s as a follower\n",current->username,p->username);
 												break;
 											}
-										}	
+										}
+										//reset inbuf to empty string.
+										p->inbuf[0] = '\0';
+										//reset pointer.
+										p->in_ptr = p->inbuf;										
 									} 
 									// 7) check if show
 									// 7 i) for each user that the current client is following - iterate through each of their messages and write to the current client
@@ -458,9 +476,12 @@ int main (int argc, char **argv) {
 										}
 										//add_message(p, p->inbuf);
 										printf("%s: %s\n", p->username, p->inbuf);	
+										//reset inbuf to empty string.
+										p->inbuf[0] = '\0';
+										//reset pointer.
+										p->in_ptr = p->inbuf;
 									}
 									// 8) check send
-									
 									else if (!(strncmp(SEND_MSG, p->inbuf, 4))){
 										char tweet[BUF_SIZE];
 										strncpy(tweet, p->inbuf + 5, strlen(p->inbuf) - 5);
@@ -499,25 +520,26 @@ int main (int argc, char **argv) {
 											}
 											break;
 										}
+										//reset inbuf to empty string.
+										p->inbuf[0] = '\0';
+										//reset pointer.
+										p->in_ptr = p->inbuf;
 										
+									} else{
+										char *invalid = "Invalid command. Please enter a valid command.\n";
+										if (write(p->fd, invalid, strlen(invalid)) == -1){
+											fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
+											remove_client(&active_clients, p->fd);
+										}								
+										//reset inbuf to empty string.
+										p->inbuf[0] = '\0';
+										//reset pointer.
+										p->in_ptr = p->inbuf;
 									}
-									//reset inbuf to empty string.
-									p->inbuf[0] = '\0';
-									//reset pointer.
-									p->in_ptr = p->inbuf;
 								} else {
 									//increment the p->in_ptr for the new num_reads
 									p->in_ptr = (p->in_ptr + nread);
 								}
-
-								
-							
-							
-							
-							
-														// 10) if not valid, print that this is not valid (print to server log), please enter a proper password (write to file descriptor).
-							// 11) if write command fails - go through each active client and remove from followers and following, then remove from active client.
-                            //break;
 							}
 							break;
                         }
@@ -535,21 +557,7 @@ int main (int argc, char **argv) {
  * or -1 if no network newline is found.
  * Definitely do not use strchr or other string functions to search here. (Why not?)
  */
-int find_network_newline(const char *buf, int n) { //Test in test_functions - seems to work.
-	//int j = 0;
-	//while (j < n -1){
-	//	if (buf[j] == '\r' && buf[j+1] == '\n'){
-	//		return j + 2;
-	//	}
-	//	j++;
-	//}
-	//int j = 0;
-	//while (j < n -1){
-	//	if (buf[j] == '\r' && buf[j+1] == '\n'){
-	//		return j + 2;
-	//	}
-	//	j++;
-	//}
+int find_network_newline(const char *buf, int n) {
 	int end = n - 1;
 	while (end > -1){
 		if (buf[end] == '\r' && buf[end + 1] == '\n'){
@@ -567,17 +575,17 @@ int find_network_newline(const char *buf, int n) { //Test in test_functions - se
  */
 int check_username(char *username, struct client **active_clients_ptr){
 	if (!strcmp(username, "")){
-		return 1; //username equals the empty string, return 1 (false)
+		return 1; 
 	}
 	struct client * active = (*active_clients_ptr);
 	while (active != NULL){
-		if (!strcmp(active->username, username)){//username equals an existing name
-			return 1;//return 1 (false)
+		if (!strcmp(active->username, username)){
+			return 1;
 		}
 		active = active->next;
 	}
-	return 0;//returns 0 (true) - your password is legit!
-}	//if this returns 0 - the password is legit - if this returns 1, the password is bullshit!!!!!!!!!!!!!!!
+	return 0;
+}	
 
 
 
