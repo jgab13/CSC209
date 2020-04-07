@@ -54,6 +54,7 @@ void add_message(struct client * p, char * s);
 void reset_inputbuf(struct client *p); 
 void write_wrapper(int fd, char * message, struct client ** p, struct sockaddr_in q);
 int read_wrapper(int fd, char * pointer, int size, struct sockaddr_in q, struct client **p);
+int check_follow(struct client *p, struct client *q);
 
 
 
@@ -318,13 +319,15 @@ int main (int argc, char **argv) {
 									//If user issues unfollow command.
 									} else if (!(strncmp(UNFOLLOW_MSG, p->inbuf, 6))){
 										struct client *cur;
+										int exists;
 										for (cur = active_clients; cur != NULL; cur = cur->next){
 											char full_message[BUF_SIZE];
 											strncpy(full_message, UNFOLLOW_MSG, sizeof(full_message)); //add a space here
 											full_message[strlen(UNFOLLOW_MSG)] = '\0';
 											strncat(full_message, " ", sizeof(full_message) - strlen(full_message) - 1);
 											strncat(full_message, cur->username, sizeof(full_message) - strlen(full_message) - 1);
-											if (!(strcmp(p->inbuf, full_message))){
+											if ((!(strcmp(p->inbuf, full_message))) & (!(check_follow(p, cur)))){
+												exists++;
 												//remove cur->username from following of p
 												for (int m = 0; m < FOLLOW_LIMIT; m++){
 													if (p->following[m] != NULL){
@@ -355,6 +358,11 @@ int main (int argc, char **argv) {
 												break;
 											}
 										}
+										if (exists == 0){
+											char *invalid_unfollow = "User not found. Unfollow request failed.\n";
+											write_wrapper(p->fd, invalid_unfollow, &active_clients, q);
+										}
+										exists = 0;
 										reset_inputbuf(p);
 									}
 									// 5) Check if follow and check username to see if valid
@@ -362,6 +370,7 @@ int main (int argc, char **argv) {
 									// 5 ii) else add client to followers and add current client to following of username
 									else if (!(strncmp(FOLLOW_MSG, p->inbuf, 6))){
 										struct client *current;
+										int exist = 0;
 										for (current = active_clients; current != NULL; current = current->next){
 											char full_message2[BUF_SIZE];
 											strncpy(full_message2, FOLLOW_MSG, sizeof(full_message2));//add a space here
@@ -369,7 +378,9 @@ int main (int argc, char **argv) {
 											strncat(full_message2, " ", sizeof(full_message2) - strlen(full_message2) - 1);
 											strncat(full_message2, current->username, sizeof(full_message2) - strlen(full_message2) - 1);
 											
-											if (!(strcmp(full_message2, p->inbuf)) & (current->nfollowers < FOLLOW_LIMIT) & (p->nfollowing < FOLLOW_LIMIT)){
+											if (!(strcmp(full_message2, p->inbuf)) & (current->nfollowers < FOLLOW_LIMIT) & 
+													(p->nfollowing < FOLLOW_LIMIT) & ((check_follow(p, current)))){
+												exist++;
 												for (int b = 0; b < FOLLOW_LIMIT; b++){
 													if (p->following[b] == NULL){
 														p->following[b] = current;
@@ -391,6 +402,12 @@ int main (int argc, char **argv) {
 												break;
 											}
 										}
+										if (exist == 0){
+											char *invalid_follow = "Follow request failed due to invalid username or limited follow space.\n";
+											write_wrapper(p->fd, invalid_follow, &active_clients, q);
+										
+										}
+										exist = 0;
 										reset_inputbuf(p);
 									} 
 									// 7) check if show
@@ -517,7 +534,8 @@ void remove_followers(struct client **clients, int fd, struct client *p){
 				if (q->following[m]->fd == fd){
 					q->following[m] = NULL;
 					q->nfollowing -= 1;
-					printf("%s is no longer following %s due to disconnection\n", q->username, p->username);
+					printf("%s is no longer following %s due to disconnection.\n", q->username, p->username);
+					printf("%s no longer has %s as a follower.\n", p->username, q->username);
 					break;
 				}
 			}				
@@ -567,6 +585,20 @@ int read_wrapper(int fd, char * pointer, int size, struct sockaddr_in q, struct 
 	}
 	return num_reads;
 
+}
+
+/*
+* Returns 0 if p follows q and 1 otherwise.
+*/
+int check_follow(struct client *p, struct client *q){
+	for (int i=0; i < FOLLOW_LIMIT; i++){
+		if (p->following[i] != NULL){
+			if (!strcmp(p->following[i]->username, q->username)){
+				return 0;
+			}
+		}
+	}
+	return 1;
 }
 
 
