@@ -322,7 +322,7 @@ int main (int argc, char **argv) {
 										int exists;
 										for (cur = active_clients; cur != NULL; cur = cur->next){
 											char full_message[BUF_SIZE];
-											strncpy(full_message, UNFOLLOW_MSG, sizeof(full_message)); //add a space here
+											strncpy(full_message, UNFOLLOW_MSG, sizeof(full_message));
 											full_message[strlen(UNFOLLOW_MSG)] = '\0';
 											strncat(full_message, " ", sizeof(full_message) - strlen(full_message) - 1);
 											strncat(full_message, cur->username, sizeof(full_message) - strlen(full_message) - 1);
@@ -390,7 +390,7 @@ int main (int argc, char **argv) {
 												}
 												
 												for (int c = 0; c < FOLLOW_LIMIT; c++){
-													if	(current->followers[c] == NULL){
+													if (current->followers[c] == NULL){
 														current->followers[c] = p;
 														current->nfollowers +=1;
 														break;
@@ -600,6 +600,7 @@ int check_follow(struct client *p, struct client *q){
 	}
 	return 1;
 }
+
 
 
 
