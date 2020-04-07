@@ -30,6 +30,7 @@ struct client {
     struct in_addr ipaddr;
     char username[BUF_SIZE];
     char message[MSG_LIMIT][BUF_SIZE];
+	int nmessage;//added by Jonathan
     struct client *following[FOLLOW_LIMIT]; // Clients this user is following
 	int nfollowing; // added by Jonathan
     struct client *followers[FOLLOW_LIMIT]; // Clients who follow this user
@@ -113,6 +114,7 @@ void add_client(struct client **clients, int fd, struct in_addr addr) {
     p->next = *clients;
 	p->nfollowers = 0;//added by Jonathan
 	p->nfollowing = 0;//added by Jonathan
+	p->nmessage = 0;//added by Jonathan
 
     // initialize messages to empty strings
     for (int i = 0; i < MSG_LIMIT; i++) {
@@ -181,7 +183,6 @@ void add_message(struct client * p, char * s){
 		}
 	}
 }
-
 
 int main (int argc, char **argv) {
     int clientfd, maxfd, nready;
@@ -347,8 +348,9 @@ int main (int argc, char **argv) {
 									// 9) check if quit
 									// 9 i) close socket connection and quit
 									if (!strcmp("quit", p->inbuf)){//Nothing happens yet - need to figure this out!
-										remove_client(&active_clients, cur_fd);
 										printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
+										remove_client(&active_clients, cur_fd);
+										
 									}
 									//Construct an unfollow + username message by iterating through each
 									//active user and concatenating with unfollow - then compare against the p->inbuf
@@ -367,25 +369,29 @@ int main (int argc, char **argv) {
 											if (!(strcmp(p->inbuf, full_message))){
 												//remove cur->username from following of p
 												for (int m = 0; m < FOLLOW_LIMIT; m++){
-													if (!strcmp(p->following[m]->username, cur->username)){
-														p->following[m] = NULL;
-														p->nfollowing -= 1;
-														//Print message to server that this guy is no longer following another guy.
-														add_message(p, full_message);
-														printf("%s: %s\n", p->username, full_message);
-														printf("%s is no longer following %s\n", p->username, cur->username);
-														break;
+													if (p->following[m] != NULL){
+														if (!strcmp(p->following[m]->username, cur->username)){
+															p->following[m] = NULL;
+															p->nfollowing -= 1;
+															//Print message to server that this guy is no longer following another guy.
+															//add_message(p, full_message);
+															printf("%s: %s\n", p->username, full_message);
+															printf("%s is no longer following %s\n", p->username, cur->username);
+															break;
+														}
 													}
 												}
 
 												//remove p->username from folowers of cur
 												for (int k = 0; k < FOLLOW_LIMIT; k++){
-													if (!strcmp(cur->followers[k]->username, p->username)){
-														cur->followers[k] = NULL;
-														cur->nfollowers -= 1;
-														//print message to server that this guy lost a follower.
-														printf("%s no longer has %s as a follower\n",cur->username,p->username);
-														break;
+													if (cur->followers[k] != NULL){
+														if (!strcmp(cur->followers[k]->username, p->username)){
+															cur->followers[k] = NULL;
+															cur->nfollowers -= 1;
+															//print message to server that this guy lost a follower.
+															printf("%s no longer has %s as a follower\n",cur->username,p->username);
+															break;
+														}
 													}
 												}
 												break;
@@ -421,7 +427,7 @@ int main (int argc, char **argv) {
 													}
 												}
 													
-												add_message(p, full_message2);
+												//add_message(p, full_message2);
 												printf("%s: %s\n", p->username, full_message2);
 												printf("%s is now followiwng %s\n",p->username,current->username);
 												printf("%s has %s as a follower\n",current->username,p->username);
@@ -430,7 +436,7 @@ int main (int argc, char **argv) {
 										}	
 									} 
 									// 7) check if show
-									
+									// 7 i) for each user that the current client is following - iterate through each of their messages and write to the current client
 									else if (!strcmp(p->inbuf, SHOW_MSG)){
 										for (int i = 0; i < FOLLOW_LIMIT; i++){
 											for (int j = 0; j < MSG_LIMIT; j++){
@@ -441,18 +447,59 @@ int main (int argc, char **argv) {
 														msg[strlen(p->following[i]->username)] ='\0';
 														strncat(msg, ": ", sizeof(msg) - strlen(msg) - 1);
 														strncat(msg, p->following[i]->message[j], sizeof(msg) - strlen(msg) - 1);
-														strncat(msg, "\n", sizeof(msg) - strlen(msg) - 1);
-														
+														strncat(msg, "\n", sizeof(msg) - strlen(msg) - 1);									
 														if (write(p->fd, msg, strlen(msg)) == -1) {
 															fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
-															remove_client(&active_clients, p->following[i]->fd);
+															remove_client(&active_clients, p->fd);
 														}
-														//msg[0] = '\0';
 													}
 												}
 											}
 										}
-									// 7 i) for each user that the current client is following - iterate through each of their messages and write to the current client	
+										//add_message(p, p->inbuf);
+										printf("%s: %s\n", p->username, p->inbuf);	
+									}
+									// 8) check send
+									
+									else if (!(strncmp(SEND_MSG, p->inbuf, 4))){
+										char tweet[BUF_SIZE];
+										strncpy(tweet, p->inbuf + 5, strlen(p->inbuf) - 5);
+										tweet[strlen(p->inbuf) - 5] = '\0';	
+										// 8 i) iterate through message list - if no space - can't send message. 
+										// 8 ii) otherwise add message to message list
+										// 8 iii) write message to followers
+										
+										if (p->nmessage < MSG_LIMIT){
+											for (int t=0; t < MSG_LIMIT; t++){
+												if (p->message[t][0] == '\0'){
+													for (int a = 0; a < FOLLOW_LIMIT; a++){
+														if (p->followers[a] != NULL){
+															char tweet2[BUF_SIZE];
+															strncpy(tweet2, p->username, sizeof(tweet2));
+															tweet2[strlen(p->username)] = '\0';
+															strncat(tweet2, ": ", sizeof(tweet2) - strlen(tweet2) - 1);
+															strncat(tweet2, tweet, sizeof(tweet2) - strlen(tweet2) - 1);
+															strncat(tweet2, "\n", sizeof(tweet2) - strlen(tweet2) - 1);									
+															if (write(p->followers[a]->fd, tweet2, strlen(tweet2)) == -1){
+																fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
+																remove_client(&active_clients, p->followers[a]->fd);
+															}
+														}
+													}
+													printf("%s: %s\n", p->username, p->inbuf);
+													add_message(p, p->inbuf);
+													break;
+												} 
+											}
+										} else{
+											char *fail = "Message limit execeed. Message not sent.\n";
+											if (write(p->fd, fail, strlen(fail)) == -1){
+												fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
+												remove_client(&active_clients, p->fd);
+											}
+											break;
+										}
+										
 									}
 									//reset inbuf to empty string.
 									p->inbuf[0] = '\0';
@@ -467,10 +514,7 @@ int main (int argc, char **argv) {
 							
 							
 							
-							// 8) check send
-							// 8 i) iterate through message list - if no space - can't send message. 
-							// 8 ii) otherwise add message to message list
-							// 8 iii) write message to followers
+							
 														// 10) if not valid, print that this is not valid (print to server log), please enter a proper password (write to file descriptor).
 							// 11) if write command fails - go through each active client and remove from followers and following, then remove from active client.
                             //break;
