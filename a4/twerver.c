@@ -46,8 +46,16 @@ void add_client(struct client **clients, int fd, struct in_addr addr);
 void remove_client(struct client **clients, int fd);
 
 
+//Helper functions.
 int find_network_newline(const char *buf, int n);//Added by Jonathan.
 int check_username(char *username, struct client **active_clients_ptr);//Added by Jonathan.
+void remove_followers(struct client **clients, int fd, struct client *p);//Added by Jonathan.
+void add_message(struct client * p, char * s);//Added by Jonathan.
+void reset_inputbuf(struct client *p); //Added by Jonathan.
+void write_wrapper(int fd, char * message, struct client ** p, struct sockaddr_in q);//Added by Jonathan
+int read_wrapper(int fd, char * pointer, int size, struct sockaddr_in q, struct client **p);//Added by Jonathan
+
+
 
 // These are some of the function prototypes that we used in our solution 
 // You are not required to write functions that match these prototypes, but
@@ -66,7 +74,6 @@ void announce(struct client *active_clients, char *s){//Tested- appears to work 
 	}
 	//this should write the same message to every client.
 }
-
 
 
 // Move client c from new_clients list to active_clients list. 
@@ -124,24 +131,7 @@ void add_client(struct client **clients, int fd, struct in_addr addr) {
     *clients = p;
 }
 
-/* 
- * Remove followers from clients if the follower_fd is fd.
- */
-void remove_followers(struct client **clients, int fd){///this doesn
-	struct client **p;
-	
-	// for each client
-    for (p = clients; *p && (*p)->fd != fd; p = &(*p)->next){
-		if (*p && ((*p)->followers[0] != NULL)){//I need another check in order to make quit work.
-			for (int i = 0; i < FOLLOW_LIMIT; i++){
-				if (*p && ((*p)->followers[i]->fd == fd)){
-					(*p)->followers[i] = NULL;
-				}
-			}
-		}
-        
-	}
-}
+
 
 /* 
  * Remove client from the linked list and close its socket.
@@ -158,7 +148,7 @@ void remove_client(struct client **clients, int fd) {
     if (*p) {
         // TODO: Remove the client from other clients' following/followers
         // lists
-		//remove_followers(clients, fd); 
+		remove_followers(clients, fd, *p); 
 		//the remove followers function is fucked - need to double check how it works!
 
         // Remove the client
@@ -173,19 +163,9 @@ void remove_client(struct client **clients, int fd) {
             "Trying to remove fd %d, but I don't know about it\n", fd);
     }
 }
-/* 
- * Add message s to client p message list if there is available space.
- * If the message list is full, write that message not added to the list.
- */
-void add_message(struct client * p, char * s){
-	for (int i = 0; i < MSG_LIMIT; i++){
-		if (p->message[i][0] == '\0'){
-			strncpy(p->message[i], s, sizeof(p->message[i]));
-			p->message[i][strlen(s)] = '\0';
-			break;
-		}
-	}
-}
+
+
+
 
 int main (int argc, char **argv) {
     int clientfd, maxfd, nready;
@@ -273,17 +253,19 @@ int main (int argc, char **argv) {
                     if (cur_fd == p->fd) {
                         // TODO: handle input from a new client who has not yet
                         // 1) partial read into input buf in p client structure
-						int num_reads = read(p->fd, p->in_ptr, BUF_SIZE);
+						int num_reads = read_wrapper(p->fd, p->in_ptr, BUF_SIZE, q, &new_clients);
+						//int num_reads = read(p->fd, p->in_ptr, BUF_SIZE);
 						// 2) Check if num_reads didn't work correctly - i.e. cur_fd closed
-						if (num_reads == 0){
+						//if (num_reads == 0){
 						// 		2 i) if cur_fd closed:
 						//		2 ii) print message that this address disconnected
-							printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
+						//	printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
 						//		2 iii) remove cur_fd from new clients
-							remove_client(&new_clients, cur_fd);
+						//	remove_client(&new_clients, cur_fd);
 						//		2 iv) print message that this client was removed.
 						//	printf("Removing client %d %s\n", cur_fd, inet_ntoa(q.sin_addr)); - I believe this is printed in remove_client
-						} else{//num_reads successfully reads into input buffer.
+						//} else{//num_reads successfully reads into input buffer.
+						if (num_reads != 0){
 						// 3) print message about the number of bytes read by read call.
 							printf("[%d] Read %d bytes\n", cur_fd, num_reads);
 						// 4) check if a newline is present using network newline
@@ -307,21 +289,15 @@ int main (int argc, char **argv) {
 									//print joined twitter to server
 									printf("%s has just joined\n", p->username);
 									// 5 ii) if password is valid - remove from new_client, move to active_clients
-									activate_client(p, &active_clients, &new_clients);//PROGRAM DIES HERE!!!!!!!.
+									activate_client(p, &active_clients, &new_clients);
 								} else { //if username is not valid
 									char * invalid = INVALID_USER;
 									// 6) if not valid, print that this is not valid (print to server log), please enter a proper password (write to file descriptor).
-									if (write(p->fd, invalid, strlen(invalid)) == -1) {
-										fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
-										remove_client(&new_clients, p->fd);
-									}
+									write_wrapper(p->fd, invalid, &new_clients, q);
 									//Print invalid user to the log.
 									printf("[%d] %s\n", p->fd, invalid);
 								}
-								//reset inbuf to empty string.
-								p->inbuf[0] = '\0';
-								//reset pointer.
-								p->in_ptr = p->inbuf;
+								reset_inputbuf(p);
 							} else {//case where no newline was found
 								//increment the p->in_ptr for the new num_reads
 								p->in_ptr = (p->in_ptr + num_reads);
@@ -338,11 +314,13 @@ int main (int argc, char **argv) {
                     for (p = active_clients; p != NULL; p = p->next) {
                         if (cur_fd == p->fd) {
                             // TODO: handle input from an active client
-							int nread = read(p->fd, p->in_ptr, BUF_SIZE);
-							if (nread == 0){
-								printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
-								remove_client(&active_clients, cur_fd);
-							} else{//num_reads successfully reads into input buffer.
+							int nread = read_wrapper(p->fd, p->in_ptr, BUF_SIZE, q, &active_clients);
+							//int nread = read(p->fd, p->in_ptr, BUF_SIZE);
+							//if (nread == 0){
+							//	printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
+							//	remove_client(&active_clients, cur_fd);
+							//} else{//num_reads successfully reads into input buffer.
+							if (nread != 0){
 								printf("[%d] Read %d bytes\n", cur_fd, nread);
 								int location;
 								if ((location = find_network_newline(p->inbuf, strlen(p->inbuf))) > 0){
@@ -351,16 +329,15 @@ int main (int argc, char **argv) {
 									// 9) check if quit
 									// 9 i) close socket connection and quit
 									if (!strcmp("quit", p->inbuf)){//Nothing happens yet - need to figure this out!
-										char * quit_user = p->username;
+										char quit_user[BUF_SIZE];
+										strncpy(quit_user, p->username, sizeof(quit_user));
+										quit_user[strlen(p->username)] = '\0';
 										printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
 										remove_client(&active_clients, cur_fd);
 										char quit[BUF_SIZE];
 										sprintf(quit, "%s has just left quit\n", quit_user);
 										announce(active_clients, quit);
-										//reset inbuf to empty string.
-										p->inbuf[0] = '\0';
-										//reset pointer.
-										p->in_ptr = p->inbuf;
+										reset_inputbuf(p);
 									}
 									//Construct an unfollow + username message by iterating through each
 									//active user and concatenating with unfollow - then compare against the p->inbuf
@@ -392,7 +369,7 @@ int main (int argc, char **argv) {
 													}
 												}
 
-												//remove p->username from folowers of cur
+												//remove p->username from followers of cur
 												for (int k = 0; k < FOLLOW_LIMIT; k++){
 													if (cur->followers[k] != NULL){
 														if (!strcmp(cur->followers[k]->username, p->username)){
@@ -407,10 +384,7 @@ int main (int argc, char **argv) {
 												break;
 											}
 										}
-										//reset inbuf to empty string.
-										p->inbuf[0] = '\0';
-										//reset pointer.
-										p->in_ptr = p->inbuf;
+										reset_inputbuf(p);
 									}
 									// 5) Check if follow and check username to see if valid
 									// 5 i) if FOLLOW_LIMIT violated -> notify user that you cannot add
@@ -440,18 +414,13 @@ int main (int argc, char **argv) {
 														break;
 													}
 												}
-													
-												//add_message(p, full_message2);
 												printf("%s: %s\n", p->username, full_message2);
 												printf("%s is now followiwng %s\n",p->username,current->username);
 												printf("%s has %s as a follower\n",current->username,p->username);
 												break;
 											}
 										}
-										//reset inbuf to empty string.
-										p->inbuf[0] = '\0';
-										//reset pointer.
-										p->in_ptr = p->inbuf;										
+										reset_inputbuf(p);
 									} 
 									// 7) check if show
 									// 7 i) for each user that the current client is following - iterate through each of their messages and write to the current client
@@ -466,26 +435,18 @@ int main (int argc, char **argv) {
 														strncat(msg, ": ", sizeof(msg) - strlen(msg) - 1);
 														strncat(msg, p->following[i]->message[j], sizeof(msg) - strlen(msg) - 1);
 														strncat(msg, "\n", sizeof(msg) - strlen(msg) - 1);									
-														if (write(p->fd, msg, strlen(msg)) == -1) {
-															fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
-															remove_client(&active_clients, p->fd);
-														}
+														write_wrapper(p->fd, msg, &active_clients, q);
 													}
 												}
 											}
 										}
-										//add_message(p, p->inbuf);
-										printf("%s: %s\n", p->username, p->inbuf);	
-										//reset inbuf to empty string.
-										p->inbuf[0] = '\0';
-										//reset pointer.
-										p->in_ptr = p->inbuf;
+										reset_inputbuf(p);
 									}
 									// 8) check send
 									else if (!(strncmp(SEND_MSG, p->inbuf, 4))){
 										char tweet[BUF_SIZE];
-										strncpy(tweet, p->inbuf + 5, strlen(p->inbuf) - 5);
-										tweet[strlen(p->inbuf) - 5] = '\0';	
+										strncpy(tweet, p->inbuf + 4, strlen(p->inbuf) - 4);
+										tweet[strlen(p->inbuf) - 4] = '\0';	
 										// 8 i) iterate through message list - if no space - can't send message. 
 										// 8 ii) otherwise add message to message list
 										// 8 iii) write message to followers
@@ -501,40 +462,25 @@ int main (int argc, char **argv) {
 															strncat(tweet2, ": ", sizeof(tweet2) - strlen(tweet2) - 1);
 															strncat(tweet2, tweet, sizeof(tweet2) - strlen(tweet2) - 1);
 															strncat(tweet2, "\n", sizeof(tweet2) - strlen(tweet2) - 1);									
-															if (write(p->followers[a]->fd, tweet2, strlen(tweet2)) == -1){
-																fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
-																remove_client(&active_clients, p->followers[a]->fd);
-															}
+															write_wrapper(p->followers[a]->fd, tweet2, &active_clients, q);
 														}
 													}
 													printf("%s: %s\n", p->username, p->inbuf);
-													add_message(p, p->inbuf);
+													add_message(p, tweet);
+													p->nmessage++;
 													break;
 												} 
 											}
 										} else{
 											char *fail = "Message limit execeed. Message not sent.\n";
-											if (write(p->fd, fail, strlen(fail)) == -1){
-												fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
-												remove_client(&active_clients, p->fd);
-											}
-											break;
+											write_wrapper(p->fd, fail, &active_clients, q);
 										}
-										//reset inbuf to empty string.
-										p->inbuf[0] = '\0';
-										//reset pointer.
-										p->in_ptr = p->inbuf;
+										reset_inputbuf(p);
 										
 									} else{
 										char *invalid = "Invalid command. Please enter a valid command.\n";
-										if (write(p->fd, invalid, strlen(invalid)) == -1){
-											fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
-											remove_client(&active_clients, p->fd);
-										}								
-										//reset inbuf to empty string.
-										p->inbuf[0] = '\0';
-										//reset pointer.
-										p->in_ptr = p->inbuf;
+										write_wrapper(p->fd, invalid, &active_clients, q);	
+										reset_inputbuf(p);
 									}
 								} else {
 									//increment the p->in_ptr for the new num_reads
@@ -586,6 +532,73 @@ int check_username(char *username, struct client **active_clients_ptr){
 	}
 	return 0;
 }	
+
+
+/* 
+ * Remove followers from clients if the follower_fd equals fd.
+ */
+void remove_followers(struct client **clients, int fd, struct client *p){
+	struct client *q;
+	for (q = *clients; q != NULL; q = q->next){
+		for (int m = 0; m < FOLLOW_LIMIT; m++){
+			if ((q->following[m] != NULL)){
+				if (q->following[m]->fd == fd){
+					q->following[m] = NULL;
+					q->nfollowing -= 1;
+					printf("%s is no longer following %s due to disconnection\n", q->username, p->username);
+					break;
+				}
+			}				
+		}
+	}
+}
+
+/* 
+ * Add message s to client p message list if there is available space.
+ */
+void add_message(struct client * p, char * s){
+	for (int i = 0; i < MSG_LIMIT; i++){
+		if (p->message[i][0] == '\0'){
+			strncpy(p->message[i], s, sizeof(p->message[i]));
+			p->message[i][strlen(s)] = '\0';
+			break;
+		}
+	}
+}
+
+/* 
+ * Resets the input buffer and pointer to the input buffer for client p.
+ */
+void reset_inputbuf(struct client *p){
+	p->inbuf[0] = '\0';
+	p->in_ptr = p->inbuf;
+}
+
+/* 
+ * Write to socket wrapper function.
+ */
+void write_wrapper(int fd, char * message, struct client ** p, struct sockaddr_in q){
+	if (write(fd, message, strlen(message)) == -1) {
+		fprintf(stderr, "Write to client %s failed\n", inet_ntoa(q.sin_addr));
+		remove_client(p, fd);
+	}
+}
+
+/* 
+ * Write to socket wrapper function.
+ */
+int read_wrapper(int fd, char * pointer, int size, struct sockaddr_in q, struct client **p){
+	int num_reads = read(fd, pointer, size);
+	if (num_reads == 0){
+		printf("Disconnect from %s\n", inet_ntoa(q.sin_addr));
+		remove_client(p, fd);
+	}
+	return num_reads;
+
+}
+
+
+
 
 
 
